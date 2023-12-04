@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 
-# URL of the website
+
 url = 'https://www.iii.org/table-archive/21407'
 
 # Send a GET request to the URL and parse
@@ -17,6 +17,8 @@ of each 'span' element contains 'text_to_find'.
 """
 
 text_to_find = 'average premiums for homeowners and renters insurance'
+
+# Determine if text for each 'span' element contains text_to_find
 filtered_elements = [element for element in soup.find_all('span') if (text_to_find in element.get_text().lower())]
 
 year_list = []
@@ -25,7 +27,7 @@ for element in filtered_elements:
     
     text = element.get_text()
 
-    # split 'text' by comma and then by space, retrieving the first value ('year')
+    # Split 'text' by comma and then by space, retrieving the first value ('year')
     year = text.split(', ')[-1].split()[0]  
     year_list.append(year)
 

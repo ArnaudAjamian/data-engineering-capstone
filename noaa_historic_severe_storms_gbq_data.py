@@ -1,12 +1,10 @@
 from google.cloud import bigquery
 import concurrent.futures
 
-from credentials import project_id, file_path
+from credentials import project_id, noaa_file_path
 
 
 client = bigquery.Client(project = project_id)
-
-
 years = range(1950, 2024)
 
 # Export and save function will retrieve data from the public dataset
@@ -24,12 +22,12 @@ def export_and_save(years):
     df = query_job.to_dataframe()
 
     # Save the dataframe as a CSV file
-    output_file_path = f"{file_path}/{table_id}.csv"
+    output_file_path = f"{noaa_file_path}/{table_id}.csv"
     df.to_csv(output_file_path, index = False)
 
     print(f"CSV file saved at: {output_file_path}")
 
 
-
+# Enable multithreading
 with concurrent.futures.ThreadPoolExecutor() as executor:
     executor.map(export_and_save, years)
