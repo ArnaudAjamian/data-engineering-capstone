@@ -3,8 +3,14 @@ import requests
 import urllib.parse
 import os
 from bs4 import BeautifulSoup
+from credentials import census_raw_files_folder
 
-from credentials import census_file_path
+
+# Create a new folder containing all of the Excel files from 'url'
+output_folder = "State to State Migration Flows - Raw Excel Data"
+if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
+
 
 url = 'https://www.census.gov/data/tables/time-series/demo/geographic-mobility/state-to-state-migration.html'
 
@@ -27,14 +33,14 @@ for link in excel_links:
     """
 
     file_url = urllib.parse.urljoin(url, link['href'])
-    file_name = os.path.join(census_file_path, os.path.basename(file_url).lower())
+    file_name = os.path.join(census_raw_files_folder, os.path.basename(file_url).lower())
 
-    print(f"Downloading {file_url}...")
+    print(f"\nDownloading {file_url}...")
 
     # Send a GET request to download the file
     file_response = requests.get(file_url)
 
-    # Save the file to 'census_file_path'
+    # Save the file to 'census_raw_files_folder'
     with open(file_name, 'wb') as file:
         file.write(file_response.content)
 
