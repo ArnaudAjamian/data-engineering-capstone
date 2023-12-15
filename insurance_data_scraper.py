@@ -1,5 +1,6 @@
 # Import packages
 import requests
+from credentials import insurance_file_path
 from bs4 import BeautifulSoup
 
 import pandas as pd
@@ -100,3 +101,6 @@ df_cleaned.reset_index(drop = True, inplace = True)
 # Change the settings to display all rows
 pd.set_option('display.max_rows', None)
 print(df_cleaned)
+
+output_file_path = f"{insurance_file_path}/insurance_by_year_and_state.csv"
+df_cleaned.to_csv(output_file_path, index = False)
