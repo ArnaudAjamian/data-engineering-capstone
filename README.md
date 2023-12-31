@@ -37,6 +37,50 @@ The data sources listed below will be leveraged in order to collect and compile 
 
 </br>
 
+### Exploratory Data Analysis
+##### (_Based on the most recent year for which data is available for each of the respective datasets_)
+---
+Having acquired the data for this capstone project from BigQuery and various webpages using web scraping techniques, we may now turn our attention to pre-processing the data for Exploratory Data Analysis (refer to the Jupyter Notebook: `Exploratory Data Analysis.ipynb`). In conducting Exploratory Data Analysis, the most recent data from each dataset will be imported and loaded into a dataframe. Then, each of the datasets are to be pre-processed and cleaned (accounting for any missing values) so that the information can be analyzed to generate insights. 
+
+Using Matplotlib, Seaborn and Plotly, the pre-processed data from each source is leveraged to explore the following themes:
+
+1. **NOAA: Severe Storm Event Details (2022)**
+- Top 5: Most Frequenty Severe Weather Event Types
+- Number of Severe Weather Events by State
+
+2. **Homeowners and Renters Insurance by State (2007 - 2020)**
+- Average Homeowners' and Renters' Insurance Premiums by Year
+- Average Homeowners' Insurance Premium by State
+
+3. **State to State Migration Flows (2021)**
+- Net Migration by State
+- Interstate Migration to Florida and Texas
+</br>
+
+### Setting Up the Requisite Conda Environment
+---
+
+### Exploratory Data Analysis
+To set-up the necessary conda environment, please refer to the `eda_requirements.txt` file. This will enable you to create the necessary environment to run the `Exploratory Data Analysis` Jupyter Notebook.
+
+Using either the terminal or Anaconda Prompt:
+
+1. Create the environment from the `eda_requirements.txt` file:
+    ```python
+    conda env -n <environment_name> --file eda_requirements.txt
+    ```
+
+2. Activate the new environment:</br>
+    ```python
+    conda activate <environment_name>
+    ```
+
+3. To add kernel to the active conda environment:
+    ```
+    python -m ipykernel install --user --name <environment_name> --display-name "<environment_name>"
+    ```
+</br>
+
 ### Data Sources
 ---
 1. NOAA: Severe Storm Event Details [(Link)](https://console.cloud.google.com/marketplace/product/noaa-public/severe-storm-events)
