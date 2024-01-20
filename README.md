@@ -24,6 +24,9 @@ As such, this project will seek to address the following:
 ### Data Collection
 ---
 The data sources listed below will be leveraged in order to collect and compile the necessary data to achieve the above. The data collection process is comprised of the following:
+_(Refer to the `Python Scripts` folder)_
+
+#### Phase 1 - Create separate data collection scripts:
 
 1. `noaa_historic_severe_storms_gbq_data.py`</br>
     Used to export and save each of the `storm_` tables from BigQuery as a local CSV file (from 1950 - 2023).
@@ -34,6 +37,11 @@ The data sources listed below will be leveraged in order to collect and compile 
 3. `census_state_migration_xls_scraper.py`</br>
     Used to export and locally save each of the Excel files hosted by the designated URL (_see Data Source #3 below_). In support of this step, a separate script (`census_state_migration_cleaned_xls.py`) is leveraged to reconfigure and reformat the information for analysis.
 
+#### Phase 2 - Integrate each of the data collection scripts (from Phase 1) into a single 'Master OOP Script':
+
+Contained within the `master_data_pipeline_oop_script.py` file (within the Python Scripts folder) are 3 separate classes (namely: **NOAA**, **HomeRentalInsurance** and **CensusMigration**) which make up the data pipeline. This script seeks to automate the retrieval, cleaning / transformation and storage of data from each of the 3 data sources listed below.
+
+Whereas logging had not been implemented during Phase 1, it has been incorporated into the `master_data_pipeline_oop_script.py` file in order to log information, to both the terminal and to a separate 'Logs' directory, at each step of the data retrieval process.
 
 </br>
 
