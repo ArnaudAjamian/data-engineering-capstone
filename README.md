@@ -39,7 +39,7 @@ _(Refer to the `Python Scripts` folder)_
 
 #### Phase 2 - Integrate each of the data collection scripts (from Phase 1) into a single 'Master OOP Script':
 
-Contained within the `master_data_pipeline_oop_script.py` file (within the Python Scripts folder) are 3 separate classes (namely: **NOAA**, **HomeRentalInsurance** and **CensusMigration**) which make up the data pipeline. This script seeks to automate the retrieval, cleaning / transformation and storage of data from each of the 3 data sources listed below.
+Contained within the `master_data_pipeline_oop_script.py` file (within the Python Scripts folder) are classes which make up the data pipeline. This script seeks to automate the retrieval, cleaning / transformation and storage of data from each of the 3 data sources listed below.
 
 Whereas logging had not been implemented during Phase 1, it has been incorporated into the `master_data_pipeline_oop_script.py` file in order to log information, to both the terminal and to a separate 'Logs' directory, at each step of the data retrieval process.
 
