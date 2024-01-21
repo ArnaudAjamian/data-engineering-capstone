@@ -4,104 +4,96 @@ from logging_config import *
 import pandas as pd
 import numpy as np
 
-# Modules for NOAA class
+# Modules for NOAA related classes
 from google.cloud import bigquery
 import concurrent.futures
 
 
-# Modules for HomeRentalInsurance and CensusMigration classes
+# Modules for HomeRentalInsurance and CensusMigration related classes
 import requests
 from bs4 import BeautifulSoup
 
 
-# Modules for CensusMigration class
+# Modules for CensusMigration related class
 import urllib.parse
 import os
 
+
+
+class NOAABigQueryClient:
+
+    def __init__(self, project_id):
+
+        # Initialize BigQuery client with the given project ID
+        self.client = bigquery.Client(project = project_id)
+
+    def execute_query(self, query):
+
+        # Execute the given SQL query and return the result as a DataFrame
+        query_job = self.client.query(query)
+        return query_job.to_dataframe()
+
+
+class NOAADataFrameToCSV:
+
+    def __init__(self, noaa_file_path):
+
+        # Initialize DataFrameToCSV with the given file path
+        self.noaa_file_path = noaa_file_path
+
+    def save_to_csv(self, df, table_id):
+
+        # Save the DataFrame as a CSV file with the specified table ID
+        output_file_path = f"{self.noaa_file_path}/{table_id}.csv"
+        df.to_csv(output_file_path, index = False)
+        print(f"CSV file saved to: {output_file_path}")
+
+
+class NOAADataRetrievalExecutor:
+
+    def __init__(self, project_id, noaa_file_path):
+
+        # Initialize NOAADataRetrieval with NOAABigQueryClient and NOAADataFrameToCSV
+        self.bigquery_client = NOAABigQueryClient(project_id)
+        self.df_to_csv = NOAADataFrameToCSV(noaa_file_path)
+        self.years = range(1950, 2024)
+
+    def query_bigquery_table(self, table_id):
+
+        # Retrieve data from BigQuery for the specified table ID
+        query = f"SELECT * FROM `bigquery-public-data.noaa_historic_severe_storms.{table_id}`"
+        return self.bigquery_client.execute_query(query)
+
+    def export_to_csv(self, year):
+
+        # Orchestrate the process of exporting data to CSV for a specific year
+        table_id = f"storms_{year}"
+        df = self.query_bigquery_table(table_id)
+        self.df_to_csv.save_to_csv(df, table_id)
 
 
 class NOAA:
 
     def __init__(self, project_id, noaa_file_path):
 
-        self.client = bigquery.Client(project=project_id)
-        self.noaa_file_path = noaa_file_path
-        self.years = range(1950, 2024)
+        # Initialize NOAA instance with NOAADataRetrievalExecutor
+        self.data_retrieval = NOAADataRetrievalExecutor(project_id, noaa_file_path)
 
     def concurrent_export_and_save(self):
 
         # Enable multithreading
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(self.export_and_save, self.years)
+            executor.map(self.data_retrieval.export_to_csv, self.data_retrieval.years)
 
-        logger.info(f"Retrieval of NOAA Historic Severe Storms data from {self.years[0]} to {self.years[-1]} complete.")
-
-
-class NOAADataRetrieval(NOAA):
-
-    def export_from_bigquery(self, table_id):
-
-        query = f"SELECT * FROM `bigquery-public-data.noaa_historic_severe_storms.{table_id}`"
-
-        # Execute the query
-        query_job = self.client.query(query)
-
-        # Get the query results into a dataframe
-        df = query_job.to_dataframe()
-        return df
-
-    def export_and_save(self, year):
-
-        table_id = f"storms_{year}"
-        df = self.export_from_bigquery(table_id)
-        self.save_to_csv(df, table_id)
+        logger.info(f"Retrieval of NOAA Historic Severe Storms data from {self.data_retrieval.years[0]} to {self.data_retrieval.years[-1]} complete.")
 
 
-class NOAASaveData(NOAADataRetrieval):
-
-    def save_to_csv(self, df, table_id):
-
-        output_file_path = f"{self.noaa_file_path}/{table_id}.csv"
-
-        # Save the dataframe as a CSV file
-        df.to_csv(output_file_path, index=False)
-        print(f"CSV file saved to: {output_file_path}")
-
-
-noaa_instance = NOAASaveData(project_id, noaa_file_path)
+noaa_instance = NOAA(project_id, noaa_file_path)
 logger.info(f"Initiating retrieval and storage of data from the NOAA Historic Severe Storms dataset.")
 noaa_instance.concurrent_export_and_save()
 
 
 
-
-class HomeRentalInsurance:
-
-    def __init__(self, url):
-
-        self.url = url
-        self.html_text = requests.get(url).text
-        self.soup = BeautifulSoup(self.html_text, "html.parser")
-
-        self.text_to_find = "average premiums for homeowners and renters insurance"
-        self.filtered_elements = [element for element in self.soup.find_all("span") if
-                                  (self.text_to_find in element.get_text().lower())]
-
-    def run(self):
-
-        year_extraction = YearExtraction(self.filtered_elements)
-        year_extraction.extract_years()
-
-        table_processing = HomeInsuranceTableProcessing(self.soup, year_extraction.year_list)
-        table_processing.process_tables()
-
-        data_frame_creation = HomeInsuranceDataFrameCreation(table_processing.new_list)
-        df_cleaned = data_frame_creation.create_dataframe()
-
-        output_file_path = f"{insurance_file_path}/insurance_by_year_and_state.csv"
-
-        display_and_save = HomeInsuranceDataDisplayAndSave(df_cleaned, output_file_path)
-        display_and_save.display_and_save_data()
 
 
 class YearExtraction:
@@ -114,7 +106,10 @@ class YearExtraction:
     def extract_years(self):
 
         for element in self.filtered_elements:
+
             text = element.get_text()
+
+            # Split 'text' by comma and then by space, retrieving the first value ('year')
             year = text.split(", ")[-1].split()[0]
             self.year_list.append(year)
 
@@ -133,8 +128,15 @@ class HomeInsuranceTableProcessing:
         year_i = 0
 
         for i in range(1, num_tables, 2):
+            """
+            Iterate through each table from the 'soup' object
+            and find all rows within the table (as denoted by
+            the 'tr' flag)
+            """
+
             table = self.soup.find_all('table')[i]
             rows = table.find_all('tr')
+
             data = []
 
             for row in rows:
@@ -145,7 +147,6 @@ class HomeInsuranceTableProcessing:
                 using .text.strip() to remove non breaking spaces
                 (all instances of '\xa0')
                 """
-
                 cols = row.find_all(['td', 'th'])
                 cols = [ele.text.strip() for ele in cols]
 
@@ -182,9 +183,9 @@ class HomeInsuranceDataFrameCreation:
     def create_dataframe(self):
 
         # Specify the dataframe columns, and convert the 'new_list' to a dataframe
-        # NOTE: that the 'rank' columns are by year.
+        # Note that the 'rank' columns are by year.
         df_columns = ['year', 'state', 'homeowners_avg_premium', 'homeowners_rank', 'renters_avg_premium', 'renters_rank']
-        df = pd.DataFrame(self.new_list, columns=df_columns)
+        df = pd.DataFrame(self.new_list, columns = df_columns)
 
         # Remove the '$' character from each of the 3 columns listed below:
         for column in ['homeowners_avg_premium', 'homeowners_rank', 'renters_avg_premium']:
@@ -194,7 +195,7 @@ class HomeInsuranceDataFrameCreation:
         df['homeowners_avg_premium'] = df['homeowners_avg_premium'].str.replace(',', '')
 
          # Replace None with NaN and drop rows with NaN values
-        df = df.fillna(value=np.nan)
+        df = df.fillna(value = np.nan)
         df_cleaned = df.dropna()
 
         df_cleaned = df_cleaned.astype({"year": int,
@@ -205,8 +206,8 @@ class HomeInsuranceDataFrameCreation:
                                         "renters_rank": int
                                         })
 
-        df_cleaned.sort_values(by=["year", "state"], inplace=True)
-        df_cleaned.reset_index(drop=True, inplace=True)
+        df_cleaned.sort_values(by = ["year", "state"], inplace = True)
+        df_cleaned.reset_index(drop = True, inplace = True)
 
         return df_cleaned
 
@@ -234,16 +235,66 @@ class HomeInsuranceDataDisplayAndSave:
         print(f"The dataset can be found within the following directory: {self.output_file_path}.")
 
 
+class HomeRentalInsuranceExecutor:
+
+    def __init__(self, url):
+
+        self.url = url
+
+        # Send a GET request to the URL and parse
+        # the HTML content using BeautifulSoup
+        self.html_text = requests.get(url).text
+        self.soup = BeautifulSoup(self.html_text, "html.parser")
+
+        """
+        The 'year', for each table, is contained within headings starting with 'text_to_find'.
+        As each heading is prepended with the 'span' HTML tag, we then check if the text
+        of each 'span' element contains 'text_to_find'.
+        """
+
+        self.text_to_find = "average premiums for homeowners and renters insurance"
+
+        # Determine if text for each 'span' element contains text_to_find
+        self.filtered_elements = [element for element in self.soup.find_all("span") if (self.text_to_find in element.get_text().lower())]
+
+    def run(self):
+
+        """
+        This function executes the entire workflow for retrieving, processing and saving the homeowners
+        and renters insurance dataset.
+
+        This function performs the following steps:
+
+        1. Extract years from the table headers ('YearExtraction' class)
+        2. Process each of the tables so that only 1 record exists per row ('HomeInsuranceTableProcessing' class)
+        3. Compile all of the data from each of the tables into a single dataframe ('HomeInsuranceDataFrameCreation' class)
+        4. Display and save the dataframe as a CSV file ('HomeInsuranceDataDisplayAndSave' class)
+        """
+
+        year_extraction = YearExtraction(self.filtered_elements)
+        year_extraction.extract_years()
+
+        table_processing = HomeInsuranceTableProcessing(self.soup, year_extraction.year_list)
+        table_processing.process_tables()
+
+        data_frame_creation = HomeInsuranceDataFrameCreation(table_processing.new_list)
+        df_cleaned = data_frame_creation.create_dataframe()
+
+        output_file_path = f"{insurance_file_path}/insurance_by_year_and_state.csv"
+
+        display_and_save = HomeInsuranceDataDisplayAndSave(df_cleaned, output_file_path)
+        display_and_save.display_and_save_data()
+        
 
 url = "https://www.iii.org/table-archive/21407"
-insurance_instance = HomeRentalInsurance(url)
+insurance_instance = HomeRentalInsuranceExecutor(url)
 insurance_instance.run()
 
 
 
 
 
-class CensusDownloader:
+class CensusDataDownloader:
 
     def __init__(self, census_raw_files_folder):
         self.census_raw_files_folder = census_raw_files_folder
@@ -291,7 +342,7 @@ class CensusDownloader:
         logger.info(f"Download of the raw Census State to State Migration Flows data is complete.")
 
 
-class CensusProcessor:
+class CensusDataProcessor:
 
     def __init__(self, census_raw_files_folder, census_cleaned_files_folder):
 
@@ -306,15 +357,15 @@ class CensusProcessor:
 
 
         """
-        Over time, the format of the 'State to State Migration' tables has changed.
+        Over time, the format of the 'State to State Migration' tables have changed.
         From 2010 onward, additional columns were prepended to the original tables
-            which shifted the target data:
+        which shifted the target data:
             
             ie. 'Alabama' was presented in column B from 2005 - 2009
                 'Alabama' is presented in column J from 2010 onward
 
         Since the target data, interstate migration figures, is tabulated from the
-            'Alabama' column onward, we must first capture its column index.  
+        'Alabama' column onward, we must first capture its column index.  
         """
         alabama_index = (np.where(df.columns.get_loc('Alabama'))[0][0])
 
@@ -341,7 +392,7 @@ class CensusProcessor:
                         'level_1': 'Moved From: State'}, axis = 1)
 
         # Filter out any rows where the 'Moved To' and 'Moved From' states are equal
-        # since we only want to capture interstate migration flows.
+        # to one another since we only want to capture interstate migration flows.
         df = df[(df['Moved To: State'] != df['Moved From: State'])
                 & (~df['Moved To: State'].str.contains("United States", na = False))]
 
@@ -352,6 +403,10 @@ class CensusProcessor:
         
         return df
 
+
+    # The following function leverages the above 'process_excel_file' function
+    # to reconfigure the raw Excel data into a cleaned dataset.
+    
     def process_raw_data(self):
 
         # Define the folder containing the Excel files
@@ -366,6 +421,7 @@ class CensusProcessor:
         logger.info(f"Initiating pre-processing of the raw data files contained with the '{self.census_raw_files_folder}' directory.")
 
         for file in file_list:
+
             if not file.endswith("state_migration_flows_tables.xls"):
                 result_df = self.process_excel_file(file)
 
@@ -383,16 +439,32 @@ class CensusProcessor:
         logger.info(f"All of the pre-processed files have been saved to the '{self.census_cleaned_files_folder}' folder.")
 
 
-class CensusMigration:
+class CensusDataMigration:
     
     def __init__(self):
-        self.downloader = CensusDownloader(census_raw_files_folder)
-        self.processor = CensusProcessor(census_raw_files_folder, census_cleaned_files_folder)
+
+        self.downloader = CensusDataDownloader(census_raw_files_folder)
+        self.processor = CensusDataProcessor(census_raw_files_folder, census_cleaned_files_folder)
 
     def download_and_process_data(self, url):
+
+        """
+        This function executes the retrieval and pre-processing of the Census Migration dataset.
+        The data is then saved to a local repository as an Excel file.
+
+        Step 1. Download the raw data using the 'CensusDataDownloader' class which saves the information
+                to a 'Raw Excel Data' folder.
+        
+        Step 2. Pre-process the raw data using the 'CensusDataProcessor' class which cleans the data
+                contained within each of the raw Excel files, and saves each of the individual result sets into separate dataframes.
+
+                Each of the dataframes is then converted back to an Excel file which is saved within the
+                'Cleaned Excel Data' folder.
+        """
+
         self.downloader.download_raw_data(url)
         self.processor.process_raw_data()
 
 
-census_migration = CensusMigration()
+census_migration = CensusDataMigration()
 census_migration.download_and_process_data('https://www.census.gov/data/tables/time-series/demo/geographic-mobility/state-to-state-migration.html')
