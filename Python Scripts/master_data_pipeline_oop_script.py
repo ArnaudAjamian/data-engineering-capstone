@@ -49,7 +49,7 @@ class NOAADataFrameToCSV:
         print(f"CSV file saved to: {output_file_path}")
 
 
-class NOAADataRetrievalExecutor:
+class NOAADataRetrievalOrchestration:
 
     def __init__(self, project_id, noaa_file_path):
 
@@ -72,12 +72,12 @@ class NOAADataRetrievalExecutor:
         self.df_to_csv.save_to_csv(df, table_id)
 
 
-class NOAA:
+class NOAAExecutor:
 
     def __init__(self, project_id, noaa_file_path):
 
-        # Initialize NOAA instance with NOAADataRetrievalExecutor
-        self.data_retrieval = NOAADataRetrievalExecutor(project_id, noaa_file_path)
+        # Initialize NOAA instance with NOAADataRetrievalOrchestration
+        self.data_retrieval = NOAADataRetrievalOrchestration(project_id, noaa_file_path)
 
     def concurrent_export_and_save(self):
 
@@ -88,7 +88,7 @@ class NOAA:
         logger.info(f"Retrieval of NOAA Historic Severe Storms data from {self.data_retrieval.years[0]} to {self.data_retrieval.years[-1]} complete.")
 
 
-noaa_instance = NOAA(project_id, noaa_file_path)
+noaa_instance = NOAAExecutor(project_id, noaa_file_path)
 logger.info(f"Initiating retrieval and storage of data from the NOAA Historic Severe Storms dataset.")
 noaa_instance.concurrent_export_and_save()
 
